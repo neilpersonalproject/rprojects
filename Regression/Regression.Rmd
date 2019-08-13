@@ -1,0 +1,130 @@
+---
+title: "Homework 6"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+Question 14.1
+The breast cancer data set breast-cancer-wisconsin.data.txt from http://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/ (description at http://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Original%29 ) has missing values.
+1. Use the mean/mode imputation method to impute values for the missing data. 
+2. Use regression to impute values for the missing data.
+3. Use regression with perturbation to impute values for the missing data.
+4. (Optional) Compare the results and quality of classification models (e.g., SVM, KNN) build using
+(1) the data sets from questions 1,2,3;
+(2) the data that remains after data points with missing values are removed; and (3) the data set when a binary variable is introduced to indicate missing values.
+```{r setup1, include=TRUE}
+
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/Week 6/breast-cancer-wisconsin.data 2.txt"
+cancer_data <- read.table(filename, stringsAsFactors = FALSE, header=FALSE, sep = ",")
+
+#Execute head and tail function to ensure data is read accurately
+head(cancer_data)
+tail(cancer_data)
+
+#Check missing values in each column. Look for "?"
+colSums(cancer_data == '?')
+
+#V7 has missing values
+cancer_data[cancer_data$V7 == '?',]
+num_missing = 100*nrow(cancer_data[cancer_data$V7 == '?',])/nrow(cancer_data)
+num_missing
+
+#We have 16 missing values which is less than 5%. Therefore, there is no bias
+
+mod_function = function(x) {
+  ux = unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+#Get the indices for missing data
+missing_indices = which(cancer_data$V7 == '?', arr.ind = T)
+
+#Find the mode  for V7 using data thats not missing
+mode_V7 = as.numeric(mod_function(cancer_data[-missing_indices, 'V7']))
+mode_V7
+
+#Imputation using mode
+cancerdata_impute_mode = cancer_data
+cancerdata_impute_mode[missing_indices, 'V7'] = mode_V7
+
+#Check for missing values to ensure no missing values
+colSums(cancerdata_impute_mode == '?')
+
+#Find the mean  for V7 using data thats not missing
+mean_V7 = mean(as.integer(cancer_data[-missing_indices, 'V7']))
+mean_V7
+
+#Imputation using mean
+cancerdata_impute_mean = cancer_data
+cancerdata_impute_mean[missing_indices, 'V7'] = as.integer(mean_V7)
+
+#Check for missing values to ensure no missing values
+colSums(cancerdata_impute_mean == '?')
+
+#Imputation using regression
+cancerdata_regress = cancer_data[-missing_indices, 2:10]
+head(cancerdata_regress)
+
+model = lm (V7 ~., data = cancerdata_regress)
+summary(model)
+
+#Not all variables are significant. Therefore, i need to select significant features
+
+step(model)
+
+model1 = lm(V7 ~ V2+V4+V5+V8, data = cancerdata_regress)
+summary(model1)
+
+#Perform cross validation to check the performance of model1
+library(caret)
+
+cancerdata_regress$V7 = as.integer(cancerdata_regress$V7)
+train.control = trainControl(method = 'repeatedcv' , repeats = 5, number = 5)
+model_cv = train(V7 ~ V2+V4+V5+V8, data = cancerdata_regress, method = 'lm', trControl =train.control)
+print(model_cv)
+
+V7_regress_impute = predict(model1, cancer_data[missing_indices,])
+
+#Check for missing values to ensure no missing values (should be 1-10)
+V7_regress_impute
+
+#Imputation using mean
+cancerdata_impute_regress = cancer_data
+cancerdata_impute_regress[missing_indices, 'V7'] = V7_regress_impute
+cancerdata_impute_regress$V7 = as.integer(cancerdata_impute_regress$V7)
+
+#Convert values less than 1 and more than 10 to 1 and 10 respectively
+cancerdata_impute_regress$V7[cancerdata_impute_regress$V7>10] = 10
+cancerdata_impute_regress$V7[cancerdata_impute_regress$V7<10] = 1
+
+#Imputation using regression pertubation 
+set.seed(35)
+cancerdata_impute_pert = cancer_data
+cancerdata_impute_pert[missing_indices, 'V7'] = rnorm(length(V7_regress_impute), 
+                                            V7_regress_impute, sd(V7_regress_impute))
+cancerdata_impute_pert$V7 = as.integer(cancerdata_impute_pert$V7)
+
+#Convert values less than 1 and more than 10 to 1 and 10 respectively
+cancerdata_impute_pert$V7[cancerdata_impute_pert$V7>10] = 10
+cancerdata_impute_pert$V7[cancerdata_impute_pert$V7<10] = 1
+```
+Question 15.1
+Describe a situation or problem from your job, everyday life, current events, etc., for which optimization would be appropriate. What data would you need?
+
+Answer:
+I recently used to work for as a supervisor for a fast food chain and optimization could be approriate to solve scheduling for each week
+
+Data needed:
+n = number of people who start working on day of each week
+constrainst= workers work 5 days in a row followed by 2 days off
+min= worker-days used
+
+
+
+
