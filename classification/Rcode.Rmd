@@ -1,0 +1,281 @@
+---
+title: "Homework Week 1-Neil Lagundino"
+output:
+  pdf_document: default
+  html_document: default
+---
+Question 2.1
+Describe a situation or problem from your job, everyday life, current events, etc., for which a classification model would be appropriate. List some (up to 5) predictors that you might use.
+
+Answer 2.1:
+Classification model can be applied in our daily lives and major life events.Getting approved for a mortgage is a classic example that I am going through right now. The probability of getting approved lies on many different predictors such as: 1) income, 2) credit score 3) down payment 4) Gross Debt Service (GDS) Ratio and  5) Total Debt Service (TDS) Ratio. The lender uses classification model to determine if a borrower like me gets approved or not.
+
+Question 2.2.1
+  1. Using the support vector machine function ksvm contained in the R package kernlab, find a good classifier for this data. Show the equation of your classifier, and how well it classifies the data points in the full data set. (Don’t worry about test/validation data yet; we’ll cover that topic soon.)
+
+Answer 2.2.1
+```{r setup1, include=TRUE}
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#import the package kernlab
+library(kernlab)
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_1_data-summer (1)/data 2.2/credit_card_data.txt"
+credit_card_data <- read.table(filename,stringsAsFactors = FALSE, header=FALSE)
+
+#Execute head and tail function to ensure data is read accurately
+head(credit_card_data)
+tail(credit_card_data)
+
+# Set random number generator seed so that results are reproducible
+set.seed(1)
+
+#Using scaled=True
+#Call ksvm. Vanilladot is a simple linear kernel. Also use C-clasification method
+model1<- ksvm(as.matrix(credit_card_data[,1:10]),as.factor(credit_card_data[,11]),
+              type ="C-svc",       #c classification
+              kernel="vanilladot", #simple linear kernel
+              C=100,scaled=TRUE)   #scaled =True
+
+#display model1
+model1
+
+#calculate coefficients
+a <- colSums(model1@xmatrix[[1]] * model1@coef[[1]] )
+
+#display a
+a
+
+#calculate a0
+a0 <- -model1@b
+
+#display a0
+a0
+
+```
+Therefore, classifier equation is: -0.0010065348v1 - 0.0011729048v2 - 0.0016261967v3 + 0.0030064203v4 + 1.0049405641v5 - 0.0028259432v6 + 0.0002600295v7 - 0.0005349551v8 - 0.0012283758v9 + 0.1063633995v10 + 0.08158492v0 = 0
+
+```{r setup2, include=TRUE}
+#model prediction
+pred <- predict(model1,credit_card_data[,1:10])
+
+#display prediction
+pred
+
+
+# see what fraction of the model’s predictions match the actual classification
+sum(pred == credit_card_data[,11]) / nrow(credit_card_data)
+#model's aacuracy is 86.39%
+```
+Question 2.2.2 
+You are welcome, but not required, to try other (nonlinear) kernels as well; we’re not covering them in this course, but they can sometimes be useful and might provide better predictions than vanilladot.
+
+Answer 2.2.2
+```{r setup3, include=TRUE}
+#Using scaled=True
+#Call ksvm. rbfdot is a nonlinear kernel. Also use C-clasification method
+
+model1<- ksvm(as.matrix(credit_card_data[,1:10]),as.factor(credit_card_data[,11]),
+              type ="C-svc",    #c classification
+              kernel="rbfdot",   #nonlinear model  
+              C=100,scaled=TRUE) #scaled=True
+
+#display model1
+model1
+
+#calculate coefficients
+a <- colSums(model1@xmatrix[[1]] * model1@coef[[1]] )
+
+#display a
+a
+
+#calculate a0
+a0 <- -model1@b
+
+#display a0
+a0
+
+#model prediction
+pred <- predict(model1,credit_card_data[,1:10])
+
+#display prediction
+pred
+
+
+# see what fraction of the model’s predictions match the actual classification
+sum(pred == credit_card_data[,11]) / nrow(credit_card_data)
+#model's aacuracy is 95.11%
+```
+Conclusion: By applying the Gaussian RBF kernel, the accuracy rate is much higher than the vanilla dot.Thus, a better prediction model
+
+Question 2.2.3
+Using the k-nearest-neighbors classification function kknn contained in the R kknn package, suggest a good value of k, and show how well it classifies that data points in the full data set. Don’t forget to scale the data (scale=TRUE in kknn)
+
+Answer 2.2.3
+```{r setup4, include=TRUE}
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#import the package kknn
+library("kknn")
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_1_data-summer (1)/data 2.2/credit_card_data.txt"
+credit_card_data <- read.table(filename,stringsAsFactors = FALSE, header=FALSE)
+
+#Execute head and tail function to ensure data is read accurately
+head(credit_card_data)
+tail(credit_card_data)
+
+# Set random number generator seed so that results are reproducible
+set.seed(589)
+
+#Create a function to calculate the accuracy of the model with k=Z
+chk_accuracy = function(Z){
+  predicted <- rep(0,(nrow(credit_card_data))) # start with a vector of all zeros
+  for (i in 1:nrow(credit_card_data)){    
+    #credit_card_data[-i] - ensures it doesnt use i itself 
+  model1=kknn(V11~V1+V2+V3+V4+V5+V6+V7+V8+V9+V10,credit_card_data[-i,],credit_card_data[i,],
+                k=Z, scale = TRUE) #set to True means scaling the data
+    #prediction must be at least 0.5 (round to 1) or less than 0.5 (round to 0)
+  predicted[i] <- as.integer(fitted(model1)+0.5)} # for rounding
+    #calculate correct predictions
+  acc = sum(predicted == credit_card_data[,11]) / nrow(credit_card_data)
+  return(acc)
+}
+
+test_vec <- rep(0,40) #accuracy test (knn values 1 to 40)
+for (Z in 1:40){
+   test_vec[Z] = chk_accuracy(Z) 
+}
+
+knn_acc <- as.matrix(test_vec * 100) #accuracy in percentage
+knn_acc
+
+knn_val <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,
+             23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40)
+
+plot(knn_val,knn_acc)#observe accuracies per knn value
+
+max(knn_acc)
+
+```
+Conclusion: The knn value that best classifies the data points is 12, having an accuracy rate of 85.3211%
+
+Question 3.1
+Using the same data set (credit_card_data.txt or credit_card_data-headers.txt) as in Question 2.2, use the ksvm or kknn function to find a good classifier:
+A) using cross-validation(do this for the k-nearest-neighbors model;SVM is optional);and
+B) splitting the data into training,validation,and test datasets(pick either KNN or SVM;the other
+is optional).
+
+Question 3.1.A
+Use train.knn
+```{r setup5, include=TRUE}
+
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#import the package kknn
+library("kknn")
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_1_data-summer (1)/data 2.2/credit_card_data.txt"
+credit_card_data <- read.table(filename,stringsAsFactors = FALSE, header=FALSE)
+
+#Execute head and tail function to ensure data is read accurately
+head(credit_card_data)
+tail(credit_card_data)
+
+# Set random number generator seed so that results are reproducible
+set.seed(1)
+
+#Train kknn via a leave-one-out (train.kknn) crossvalidation method:
+# Set maximum value of k (number of neighbors) to test
+kmax <- 30
+
+#Use train.kknn for leave-one-out cross-validation up to k=kmax
+model1 <- train.kknn(V11~.,credit_card_data,kmax=kmax,
+            kernel = c("optimal","rectangular", "inv", "gaussian",
+                       "triangular"),scale=TRUE)
+
+#Create an array for prediction 
+acc <- rep(0,kmax)
+
+#Calculate prediction
+for (k in 1:kmax) {
+    predicted <- as.integer(fitted(model1)[[k]][1:nrow(credit_card_data)] + 0.5) #rounding
+    acc[k] <- sum(predicted == credit_card_data$V11)
+}
+
+#Display accuracies
+acc
+
+model1
+
+
+
+```
+Answer 3.1.B
+```{r setup6, include=TRUE}
+
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#import the package kknn
+library("kknn")
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_1_data-summer (1)/data 2.2/credit_card_data.txt"
+credit_card_data <- read.table(filename,stringsAsFactors = FALSE, header=FALSE)
+
+#Execute head and tail function to ensure data is read accurately
+head(credit_card_data)
+tail(credit_card_data)
+
+#Set random number generator seed so that results are reproducible
+set.seed(1)
+
+#Split data: training, validation and test
+#Use a mask using sample function for the split
+#60% for sample training
+
+mask_training =sample(nrow(credit_card_data), 
+size = floor(nrow(credit_card_data)* 0.6))
+ccdata_train = credit_card_data[mask_training,] #train data set
+
+#40% remaing for test and validation split=  1/2(20%) and 1/2(20%)
+
+remainder_test = credit_card_data[-mask_training, ]
+mask_value = sample(nrow(remainder_test), size = floor(nrow(remainder_test)/2))
+ccdata_value = remainder_test[mask_value,] #validation data
+ccdata_test = remainder_test[-mask_value,] #test data
+
+accuracy <- rep(0,19)  # 1-19 KNN model
+
+#Train KNN models
+for (k in 1:19) {
+     knn_model <- kknn(V11~.,ccdata_train,ccdata_value,k=k,scale=TRUE)
+     pred <- as.integer(fitted(knn_model)+0.5) # round off to 0 or 1
+
+     accuracy[k] = sum(pred == ccdata_value$V11) / nrow(ccdata_value)
+}
+
+accuracy[1:19]
+
+#Find the best knn in validation data
+cat("Best KNN model is k=",which.max(accuracy[1:19]),"\n")
+cat("Best validation set correctness is ",max(accuracy[1:19]),"\n")
+
+#Run the best model on test data
+knn_model <- kknn(V11~.,ccdata_train,ccdata_test,
+               k=which.max(accuracy[1:19]),
+               scale=TRUE)
+
+pred <- as.integer(fitted(knn_model)+0.5) # round off to 0 or 1
+
+cat("Performance on test data = ",sum(pred == ccdata_test$V11) / nrow(ccdata_test),"\n")
+
+
+```
