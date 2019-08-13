@@ -1,0 +1,190 @@
+---
+title: "Homework 2"
+output: pdf_document
+---
+Question 4.1
+Describe a situation or problem from your job, everyday life, current events, etc., for which a clustering model would be appropriate. List some (up to 5) predictors that you might use.
+
+Answer 4.1:
+One of the major problems that the world is facing today is drug addiction. The government can decrease the number of crimes committed by substance abuse by opening more rehabilitation centers. The problem on where to open these rehabilitation centers can be solved by clustering. Predictors might be: 1) crimes based on the abuse substance 2) crimes based on age groups 3) types of crimes committed 4) number of rehabilitations that already exists 5)population density
+
+Question 4.2
+The iris data set iris.txt contains 150 data points, each with four predictor variables and one categorical response. The predictors are the width and length of the sepal and petal of flowers and the response is the type of flower. The data is available from the R library datasets and can be accessed with iris once the library is loaded. It is also available at the UCI Machine Learning Repository (https://archive.ics.uci.edu/ml/datasets/Iris ). The response values are only given to see how well a specific method performed and should not be used to build the model.
+Use the R function kmeans to cluster the points as well as possible. Report the best combination of predictors, your suggested value of k, and how well your best clustering predicts flower type.
+
+Answer 4.2
+```{r setup1, include=TRUE}
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#Import the package datasets
+library(datasets)
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_2_data-summer/iris.txt"
+iris_data <- read.table(filename, header=TRUE)
+
+#Execute head and tail function to ensure data is read accurately
+head(iris_data)
+
+#Remove response data since it is unsurpervised task
+iris_data1 <- iris_data[,c("Species")]
+iris_data <- iris_data[,c(1,2,3,4)]
+
+
+#Execute head and tail function to ensure data is read accurately
+head(iris_data)
+tail(iris_data)
+
+
+# Set random number generator seed so that results are reproducible
+set.seed(3)
+
+
+#Scale the data
+iris_data_scaled <- function(x){
+  return ((x-min(x))/(max(x)-min(x)))
+}
+
+iris_data$Sepal.Length<- iris_data_scaled(iris_data$Sepal.Length)
+iris_data$Sepal.Width<- iris_data_scaled(iris_data$Sepal.Width)
+iris_data$Petal.Length<- iris_data_scaled(iris_data$Petal.Length)
+iris_data$Petal.Width<- iris_data_scaled(iris_data$Petal.Width)
+head(iris_data)
+
+#K Means clustering
+iris_data_cluster<- kmeans(iris_data,3, nstart = 20)
+
+par(mfrow=c(2,2), mar=c(5,4,2,2))
+plot(iris_data[c(1,2)], col=iris_data_cluster$cluster)
+plot(iris_data[c(1,2)], col=iris_data1)
+plot(iris_data[c(3,4)], col=iris_data_cluster$cluster)
+plot(iris_data[c(3,4)], col=iris_data1)
+
+#Compare cluster with species
+table(iris_data_cluster$cluster,iris_data1)
+
+#Initialize within sum of squares(wss)
+k.max <- 10
+wss<- sapply(1:k.max,function(k){kmeans(iris_data,k,nstart = 20,iter.max = 20)$tot.withinss})
+wss
+
+
+plot(1:k.max,wss, type= "b", xlab = "Number of clusters(k)", ylab = "Within cluster sum of squares")
+
+```
+Conclusion: K=3, best cluster is 3 because it is the elbow of the graph
+
+Question 5.1
+Using crime data from the file uscrime.txt (http://www.statsci.org/data/general/uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html), test to see whether there are any outliers in the last column (number of crimes per 100,000 people). Use the grubbs.test function in the outliers package in R
+
+Answer 5.1
+```{r setup2, include=TRUE}
+#Clear all objects from the current workspace
+rm(list = ls())
+
+#Import the package outliers
+library(outliers)
+
+# Set random number generator seed so that results are reproducible
+set.seed(5)
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_2_data-summer/uscrime.txt"
+uscrime_data <- read.table(filename, stringsAsFactors = FALSE, header=TRUE)
+
+#Execute head and tail function to ensure data is read accurately
+head(uscrime_data)
+tail(uscrime_data)
+
+#Check for outliers using Grubbs.test
+grubbs.test(uscrime_data$Crime)
+
+#Display summary to verify the outlier
+summary(uscrime_data$Crime)
+
+#Now visualize by plotting to get a clearer picture
+plot(uscrime_data$Crime)
+boxplot(uscrime_data$Crime)
+
+uscrime_data$Crime[20:30]
+uscrime_data$Crime[0:10]
+```
+Conclusion: 1993 is the clearest outlier followed by 1969
+
+Question 6.1
+Describe a situation or problem from your job, everyday life, current events, etc., for which a Change Detection model would be appropriate. Applying the CUSUM technique, how would you choose the critical value and the threshold?
+ 
+Answer 6.1
+In 2011, Japan was hit by a deadly tsunami. It is a series of tidal waves caused by a large volume of water. Detecting a potential tsunami before it happens could save many lives by early evacuation from the possible affected area. CUSUM for Change Detection Model can be used to monitor these tidal waves and can detect changes when critical value(tidal waves) hits above the threshold. 
+
+Choosing the critical value and threshold depends on the historical data that triggered tsunami in the past.
+
+Question 6.2
+1. Using July through October daily-high-temperature data for Atlanta for 1996 through 2015, use a CUSUM approach to identify when unofficial summer ends (i.e., when the weather starts cooling off) each year. You can get the data that you need from the file temps.txt or online, for example at http://www.iweathernet.com/atlanta-weather-records or https://www.wunderground.com/history/airport/KFTY/2015/7/1/CustomHistory.html . You can use R if you’d like, but it’s straightforward enough that an Excel spreadsheet can easily do the job too.
+2. Use a CUSUM approach to make a judgment of whether Atlanta’s summer climate has gotten warmer in that time (and if so, when
+
+Answer 6.2
+```{r setup3, include=TRUE}
+
+#Clear all objects from the current workspace
+rm(list = ls())
+
+library(data.table)
+library(ggplot2)
+
+#Import Dataset
+filename= "~/Desktop/MicroMaster GTX/week_2_data-summer/temps.txt"
+temps_data <- read.table(filename, stringsAsFactors = FALSE, header=FALSE)
+
+#Execute head and tail function to ensure data is read accurately
+head(temps_data)
+tail(temps_data)
+
+
+
+# Set random number generator seed so that results are reproducible
+set.seed(5)
+
+#Create new data to reflect Mean for each row and initailize ST=0
+RowM <- data.frame(summerdate=temps_data[,1], Means = rowMeans(temps_data[,-1]))
+RowM2 = RowM$Means[2:124]
+Row5 = RowM$summerdate[2:124]
+
+
+#Get the Max, Min, Mean, and Standard deviation of summer
+summer_max = max(RowM2)
+summer_min= min(RowM2)
+summer_mean= mean(RowM2)
+summer_sd = sd(RowM2)
+summer_max
+summer_min
+summer_mean
+summer_sd
+
+
+#Import Excel data that provides calculation of CUSUM using formula  
+#St = Max{0, St(previous) + ((X(t) - u - C)}
+#Critical value was set at stardard deviation/2 (this is changeable)
+#Please note that CUSUM was calculated thorugh Excel
+#X(t) = observed value at time t
+
+library("readxl")
+CUSUM_Calc <- read_excel("~/Desktop/MicroMaster GTX/CUSUM Calc.xlsx")
+CUSUM_Calc
+
+#Determine St >= T
+#x= CUSUM_Calc$St
+#threshold = (summer_sd*5) #this is variable (needs to be adjusted accordingly as model gets tested). 
+#I used 5 times the Standard deviation at this point as this is the industry standard
+#condition of result<-ifelse(x>threshold, "Above Threshold", "On Target")
+
+cusumcalc2 = data.frame(Summerdate=CUSUM_Calc$`Summer Date`, Avg = CUSUM_Calc$`Avg(1996-2015)`, Result = CUSUM_Calc$Result)
+cusumcalc2
+
+plot(CUSUM_Calc$`Summer Date`,CUSUM_Calc$`Avg(1996-2015)`, type="o", lwd=2, col="red")
+
+```
+Conclusion: According to the change detection model result, the unofficial end of summer is on Sep 25. This prediction may not be accurate as there are many external factors that may cause false alarm on the model prediction. With the question if Atlanta's summer has gotten warmer over time, I can take the unofficial end of summer from previous years and use CUSUM to predict when it started to get warmer based on threshold(t) and critical value(c). Overall, threshold and critical values are big components of the model.
+
+
